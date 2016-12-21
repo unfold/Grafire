@@ -1,37 +1,41 @@
-import { find, filter } from 'lodash'
+import firebase from 'firebase'
+import { filter, map } from 'lodash'
 import { makeExecutableSchema } from 'graphql-tools'
 
-const authors = [
-  { id: 1, firstName: 'Tom', lastName: 'Coleman' },
-  { id: 2, firstName: 'Sashko', lastName: 'Stubailo' },
-]
+firebase.initializeApp({
+  databaseURL: 'https://grafire-b1b6e.firebaseio.com',
+})
 
-const posts = [
-  { id: 1, authorId: 1, title: 'Introduction to GraphQL' },
-  { id: 2, authorId: 2, title: 'GraphQL Rocks' },
-  { id: 3, authorId: 2, title: 'Advanced GraphQL' },
-]
+const mapSnapshotToEntity = snapshot => ({ id: snapshot.key, ...snapshot.val() })
+const mapSnapshotToEntities = snapshot => map(snapshot.val(), (value, id) => ({ id, ...value }))
 
+const ref = path => firebase.database().ref(path)
+const getValue = path => ref(path).once('value')
+const getEntity = path => getValue(path).then(mapSnapshotToEntity)
+const getEntities = path => getValue(path).then(mapSnapshotToEntities)
+
+// http://dev.apollodata.com/tools/graphql-tools/resolvers.html
 const resolvers = {
   Author: {
     posts(author) {
-      return filter(posts, { authorId: author.id })
+      return getEntities('posts').then(posts => filter(posts, { authorId: author.id }))
     },
   },
 
   Post: {
     author(post) {
-      return find(authors, { id: post.authorId })
+      return getEntities('authors').then(posts => filter(authors, { id: authorId }))
     },
   },
 
   Query: {
     posts() {
-      return posts
+      return getEntities('posts')
     },
 
     authors() {
-      return authors
+      // ... so a resolver can return a promise that resolves to an array, or an array of promises, and both are handled correctly.
+      return getEntities('authors')
     }
   },
 }
