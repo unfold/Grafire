@@ -28,6 +28,10 @@ const resolvers = {
   Query: {
     posts() {
       return posts
+    },
+
+    authors() {
+      return authors
     }
   },
 }
@@ -48,6 +52,7 @@ const schema = `
 
   type Query {
     posts: [Post]
+    authors: [Author]
   }
 `
 
